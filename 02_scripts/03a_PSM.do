@@ -16,9 +16,18 @@
 					PART 1:	Complete Model
 *******************************************************************************/
 
+// unlogging employment
+
+gen emp15 = exp(logemp2015)
+
+
+// standardizing TFP
+
+gen TFPST = (TFP2017 -  3.656046) / 2.056464
+
 //	Setting globals for interaction terms
 	global F "OWN TECH PORT"	// Dummies with TECH
-	global C "logwages2015 TFP2015 logemp2015 DEBTS2015 EXP2015 RD2015"
+	global C "logwages2015 TFP2015 emp15 RD2015 EXP2015"
 
 *------------------------------------------------------------------------------*
 *	PART 1.1: No interactions
@@ -148,9 +157,9 @@
 	// Really bad overlap
 	
 
-/*	There is no way of getting good overlap with the complete model, TECH is 
+/*	There is no way of getting good overlap with the complete model, EXP is 
 	too good at explaining who gets the treatment. Redo this all with improved
-	model (i.e. excluding TECH). 				*/
+	model (i.e. excluding EXP). 				*/
 	
 	
 	
@@ -159,7 +168,7 @@
 *******************************************************************************/
 
 //	Setting global for interaction terms
-	global D "OWN PORT"			// Dummies without TECH
+	global D "logwages2015 TFP2015 logemp2015 RD2015"			// Dummies without TECH
 
 *------------------------------------------------------------------------------*
 *	PART 2.1: No interactions
@@ -171,8 +180,7 @@
 	cap drop osa1 
 	cap drop p1 
 	teffects psmatch (TFP2017) ///
-					 (FDI2016 i.OWN /*i.TECH*/ PORT ///
-					  logwages2015 TFP2015 logemp2015 DEBTS2015 EXP2015 RD2015),	///
+					 (FDI2016 $D  i.($F) ) ,	///
 					  osample(osa1) generate(p1)
 					  
 	teffects overlap, ptlevel(1) saving($results/03a_PSM/overl_log_noTECH.gph, replace)
@@ -180,7 +188,7 @@
 	// Much better overlap
 	
 	tebalance summarize
-	// SD way below 10% for all variables. VR fine.
+	// pretty decent balance and overlap
 
 *========*
 * Probit
@@ -188,18 +196,19 @@
 	cap drop osa1 
 	cap drop p1 
 	teffects psmatch (TFP2017) ///
-					 (FDI2016 i.OWN /*i.TECH*/ PORT ///
-					  logwages2015 TFP2015 logemp2015 DEBTS2015 EXP2015 RD2015, probit),	///
+					 (FDI2016  $D  i.($F) , probit),	///
 					  osample(osa1) generate(p1)
 
-	 outreg2 using $results\test_1.tex, replace dec(3) addnote("This is a note")   
+	 outreg2 using $results\test_1.tex, replace dec(3)  
 					  
 	teffects overlap, ptlevel(1) saving($results/03a_PSM/overl_prob_noTECH.gph, replace)
 	graph export $results/03a_PSM/overl_prob_noTECH.pdf, as(pdf) replace
 	// Much better overlap
 	
 	tebalance summarize
-	// SD way below 10% for all variables. VR fine.
+	// same as logit
+
+	
 
 
 	
@@ -213,7 +222,7 @@
 	cap drop osa1 
 	cap drop p1 
 	teffects psmatch (TFP2017) ///
-					 (FDI2016 i.($D)##i.($D) $C, probit), ///
+					 (FDI2016 i.($F)##i.($F) $D, probit), ///
 					  osample(osa1) generate(p1)
 
 	outreg2 using $results\test_1.tex, append dec(3) 	
@@ -222,7 +231,7 @@
 	graph export $results/03a_PSM/overl_prob_noTECH#d.pdf, as(pdf) replace
 	
 	tebalance summarize
-	// SD better for some, worse for others but all still below 10%. VR fine.
+	// VR of employment bad.
 
 *------------------------------------------------------------------------------*
 *	PART 2.3: Interacting continuous variables
@@ -230,15 +239,18 @@
 
 	cap drop osa1 
 	cap drop p1 
-	teffects psmatch (TFP2017) ///
-					 (FDI2016 i.($D) c.($C)##c.($C), probit), ///
+	cap teffects psmatch (TFP2017) ///
+					 (FDI2016 i.($F) c.($D)##c.($D), probit), ///
 					  osample(osa1) generate(p1)
+	teffects psmatch (TFP2017) ///
+					 (FDI2016 i.($F) c.($D)##c.($D), probit) if osa1==0, ///
+					  osample(osa2) generate(p2)
 					  
 	teffects overlap, ptlevel(1) saving($results/03a_PSM/overl_prob_noTECH#c.gph, replace)
 	graph export $results/03a_PSM/overl_prob_noTECH#c.pdf, as(pdf) replace
 	
 	tebalance summarize
-	// SD now worse (one above 10%). VR fine.
+	// emp gets worse
 
 *------------------------------------------------------------------------------*
 *	PART 2.4: Interacting all variables
@@ -247,13 +259,13 @@
 	cap drop osa1 
 	cap drop p1 
 	cap teffects psmatch (TFP2017) ///
-					 (FDI2016 i.($D)##c.($C) i.($D)#i.($D) c.($C)#c.($C), probit), ///
+					 (FDI2016 i.($F)##c.($D) i.($F)##i.($F) c.($D)##c.($D), logit), ///
 					  osample(osa1) generate(p1)
 					  // Treatment overlap assumption violated by 1 obs
 	
 	// Reestimate				  
 	teffects psmatch (TFP2017) ///
-					 (FDI2016 i.($D)##c.($C) i.($D)#i.($D) c.($C)#c.($C), probit) ///
+					 (FDI2016 i.($F)##c.($D) i.($F)#i.($F) c.($D)#c.($D), logit) ///
 					  if osa1 == 0
 	
 	tebalance summarize

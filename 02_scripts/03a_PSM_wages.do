@@ -161,7 +161,7 @@
 *******************************************************************************/
 
 //	Setting global for interaction terms
-	global D "OWN PORT"			// Dummies without TECH
+	global D "logwages2015 TFP2015 logemp2015 RD2015"		// Dummies without TECH
 
 *------------------------------------------------------------------------------*
 *	PART 2.1: No interactions
@@ -173,8 +173,7 @@
 	cap drop osa1 
 	cap drop p1 
 	teffects psmatch (logwages2017) ///
-					 (FDI2016 i.OWN /*i.TECH*/ PORT ///
-					  logwages2015 TFP2015 logemp2015 DEBTS2015 EXP2015 RD2015),	///
+					  (FDI2016 $D  i.($F) ) ,	///
 					  osample(osa1) generate(p1)
 					  
 	teffects overlap, ptlevel(1) saving($results/03a_PSM_wages/overl_log_noTECH.gph, replace)
@@ -190,8 +189,7 @@
 	cap drop osa1 
 	cap drop p1 
 	teffects psmatch (logwages2017) ///
-					 (FDI2016 i.OWN /*i.TECH*/ PORT ///
-					  logwages2015 TFP2015 logemp2015 DEBTS2015 EXP2015 RD2015, probit),	///
+					 (FDI2016 $D  i.($F) ) ,	///
 					  osample(osa1) generate(p1)
 					  
 	teffects overlap, ptlevel(1) saving($results/03a_PSM_wages/overl_prob_noTECH.gph, replace)
@@ -209,7 +207,7 @@
 	cap drop osa1 
 	cap drop p1 
 	teffects psmatch (logwages2017) ///
-					 (FDI2016 i.($D)##i.($D) $C, probit), ///
+					 (FDI2016 i.($F)##i.($F) $D, probit),  ///
 					  osample(osa1) generate(p1)
 					  
 	teffects overlap, ptlevel(1) saving($results/03a_PSM_wages/overl_prob_noTECH#d.gph, replace)
@@ -225,7 +223,7 @@
 	cap drop osa1 
 	cap drop p1 
 	teffects psmatch (logwages2017) ///
-					 (FDI2016 i.($D) c.($C)##c.($C), probit), ///
+					 (FDI2016 i.($F) c.($D)##c.($D), probit), ///
 					  osample(osa1) generate(p1)
 					  
 	teffects overlap, ptlevel(1) saving($results/03a_PSM_wages/overl_prob_noTECH#c.gph, replace)
@@ -241,13 +239,13 @@
 	cap drop osa1 
 	cap drop p1 
 	cap teffects psmatch (logwages2017) ///
-					 (FDI2016 i.($D)##c.($C) i.($D)#i.($D) c.($C)#c.($C), probit), ///
+					 (FDI2016 i.($F)##c.($D) i.($F)##i.($F) c.($D)##c.($D), logit),  ///
 					  osample(osa1) generate(p1)
 					  // Treatment overlap assumption violated by 1 obs
 	
 	// Reestimate				  
 	teffects psmatch (logwages2017) ///
-					 (FDI2016 i.($D)##c.($C) i.($D)#i.($D) c.($C)#c.($C), probit) ///
+					  (FDI2016 i.($F)##c.($D) i.($F)#i.($F) c.($D)#c.($D), logit) ///
 					  if osa1 == 0
 	
 	tebalance summarize
